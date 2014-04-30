@@ -19,13 +19,15 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 def chatroom_key(chatroom_name):
 	return ndb.Key('Chatroom', chatroom_name)
 
+def get_connections(chatroom):
+	connections_query = Connection.query(ancestor=chatroom_key(chatroom))
+	return connections_query.fetch(40)
+
 def send_message_to_chatroom_connections(content, chatroom):
 	ndb.get_context().set_memcache_policy(False)
 	ndb.get_context().set_cache_policy(False)
 	
-	connections_query = Connection.query(ancestor=chatroom_key(chatroom))
-	connections = connections_query.fetch(40)
-
+	connections = get_connections(chatroom)
 	author = users.get_current_user().nickname()
 	message = json.dumps({'content': content,'author': author})
 
@@ -39,6 +41,7 @@ class ChatLine(ndb.Model):
 
 class Connection(ndb.Model):
 	channel_id = ndb.StringProperty()
+	user = ndb.UserProperty()
 	date = ndb.DateTimeProperty(auto_now_add=True)
 
 class ChatPage(webapp2.RequestHandler):
@@ -49,17 +52,19 @@ class ChatPage(webapp2.RequestHandler):
 		ckey = chatroom_key(chatroom)
 
 		# Store the connection
-		connection = Connection(parent=ckey)
-		connection.channel_id = channel_id
+		connection = Connection(parent=ckey, channel_id=channel_id, user=users.get_current_user())
 		connection.put()
 
-		chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(-ChatLine.date)
+		connections = get_connections(chatroom)
+
+		chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(+ChatLine.date)
 		chats = chats_query.fetch(100)
 
 		template_values = {
 			'chatroom': urllib.quote_plus(chatroom),
 			'token': token,
-			'chats': chats
+			'chats': chats,
+			'connections': connections
 		}
 
 		template = JINJA_ENVIRONMENT.get_template('index.html')

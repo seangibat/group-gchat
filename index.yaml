@@ -14,9 +14,19 @@ indexes:
   ancestor: yes
   properties:
   - name: date
+
+- kind: ChatLine
+  ancestor: yes
+  properties:
+  - name: date
     direction: desc
 
 - kind: Connection
   ancestor: yes
   properties:
   - name: date
+
+- kind: Connection
+  ancestor: yes
+  properties:
+  - name: user
