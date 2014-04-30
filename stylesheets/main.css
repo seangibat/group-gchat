@@ -1,0 +1,73 @@
+body {
+  text-align: left;
+  font-size: 14px;
+  margin:0;
+  padding:0;
+}
+.author {
+  font-weight: bold;
+  text-align: right;
+  vertical-align: top;
+  word-break:keep-all;
+  white-space: nowrap;
+}
+.content{
+  width: 100%;
+  text-align: left;
+}
+#chatsBiggerContainer{
+	position: absolute;
+	top:0;
+	left:15px;
+	right:0;
+	bottom:60px;
+}
+#chatsContainer{
+	margin:0;
+	padding:0;
+	padding-left:15px;
+	margin-bottom:60px;
+	width:auto;
+		-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+-moz-box-sizing: border-box;    /* Firefox, other Gecko */
+box-sizing: border-box;         /* Opera/IE 8+ */
+}
+#chatInput{
+  line-height: 1.5em;
+  padding: 5px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+#inputContainer{
+	position: fixed;
+  bottom: 0px;
+  left: 0px;
+  right: 15px;
+  margin: 15px;
+  z-index: 3;
+}
+#sidePanel{
+	position: fixed;
+  top: 15px;
+  right: 15px;
+  text-align: right;
+  background-color:rgba(255,255,255,0.9);
+  z-index: 2;
+}
+.toBottom{
+	font-style: underline;
+	color:#777;
+}
+.toBottom:hover{
+	cursor: pointer;
+}
+h1{
+	padding: 0;
+	margin: 0;
+	margin-bottom: 0px;
+	color: #444;
+	font-style: underline;
+}
