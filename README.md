@@ -1,6 +1,8 @@
 groupgchat
 ==========
 
+http://ggchatroom.appspot.com/
+
 A simple Google App Engine chatroom made to learn Python and asynchronous communication.
 
 As authentication is handled by the GAE Users API, it is essentially group gchat.

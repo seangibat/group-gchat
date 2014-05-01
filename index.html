@@ -2,7 +2,7 @@
 {% autoescape true %}
 <html>
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>{{ chatroom }} - group gchat</title>
 <link rel="stylesheet" type="text/css" href="/stylesheets/main.css">
 
@@ -11,11 +11,13 @@
 
 <div id="sidePanel">
   <h1 id="chatroom">{{ chatroom }}</h1>
-  <a class="toBottom" onclick="window.scrollTo(0,document.body.scrollHeight);">to bottom</a><br><br>
-  <b>Connected Users</b><br>
-  {% for connection in connections %}
-    {{ connection.user.nickname() }}<br>
-  {% endfor %}
+  <a class="toBottom" onclick="scrollToBottom;">to bottom</a><br><br>
+  <span id="connectedUsersLabel">Connected Users</span><br>
+  <div id="connectedUsers">
+    {% for connection in connections %}
+      {{ connection.user.nickname() }}<br>
+    {% endfor %}
+  </div>
 </div>
 
 <table id="chatsBiggerContainer"><tr><td id="hi">
@@ -45,7 +47,7 @@ createUID = function(){
     function(c) {var r = Math.random()*16|0,v=c=='x'?r:r&0x3|0x8;return v.toString(16);});
 };
 
-scrollToTop = function(){
+scrollToBottom = function(){
   window.scrollTo(0,document.body.scrollHeight);
 };
 
@@ -61,6 +63,14 @@ makeChatroomsLinkable = function(element){
   }));
 };
 
+breakLongWords = function(element){
+  var patt = /([^\s<>]{20})(?![^<>]*>)/gi;
+  element.html(element.html().replace(patt,function(match){
+    console.log(match);
+    return match + "&#8203;";
+  }));
+};
+
 channel = new goog.appengine.Channel('{{ token }}');
 socket = channel.open();
 socket.onmessage = function(data){
@@ -70,9 +80,10 @@ socket.onmessage = function(data){
   $('#chatsContainer').append("<tr id="+uid+"><td class='author'>" 
     + obj.author + "</td><td class='content'>" + obj.content + "</td></tr>");
 
-  scrollToTop();
   turnLinksBlue($('#'+uid));
   makeChatroomsLinkable($('#'+uid+' td:nth-child(2)'));
+  breakLongWords($('#'+uid+' td:nth-child(2)'));
+  scrollToBottom();
 
   $.titleAlert("New Message From " + obj.author, {requireBlur:true, stopOnFocus:true, duration:10000, interval:500});
 };
@@ -88,9 +99,16 @@ $('#chatInput').keydown(function(event){
 });
 
 $(function() {
-    $('#chatInput').focus();
-    $(window).focus(function(){$('#chatInput').focus();});
-    scrollToTop();
+  $('#chatInput').focus();
+  $(window).focus(function(){$('#chatInput').focus();});
+  turnLinksBlue($('#chatsContainer'));
+  breakLongWords($('#chatsContainer'));
+  scrollToBottom();
+
+  $('#connectedUsers').hide();
+  $('#connectedUsersLabel').click(function(){
+    $('#connectedUsers').slideToggle();
+  });
 });
 
 </script>

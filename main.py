@@ -58,7 +58,7 @@ class ChatPage(webapp2.RequestHandler):
 		connections = get_connections(chatroom)
 
 		chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(+ChatLine.date)
-		chats = chats_query.fetch(100)
+		chats = chats_query.fetch(1000)
 
 		template_values = {
 			'chatroom': urllib.quote_plus(chatroom),
