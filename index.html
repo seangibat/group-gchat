@@ -8,8 +8,7 @@
 
 </head>
 <body>
-<center>
-  
+
 <div id="sidePanel">
   <h1 id="chatroom">{{ chatroom }}</h1>
   <a class="toBottom" onclick="window.scrollTo(0,document.body.scrollHeight);">to bottom</a><br><br>
@@ -19,14 +18,16 @@
   {% endfor %}
 </div>
 
-<table id="chatsContainer">
-  {% for chat in chats %}
-    <tr>
-      <td class="author">{{ chat.author.nickname() }}</td>
-      <td class="content">{{ chat.content }}</td>
-    </tr>
-  {% endfor %}
-</table>
+<table id="chatsBiggerContainer"><tr><td id="hi">
+  <table id="chatsContainer">
+    {% for chat in chats %}
+      <tr>
+        <td class="author">{{ chat.author.nickname() }}</td>
+        <td class="content">{{ chat.content }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</td></tr></table>
 
 <div id="inputContainer">
 	<input autocomplete="off" id="chatInput" type="text" name="content"></input>
