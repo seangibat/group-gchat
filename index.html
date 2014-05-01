@@ -5,13 +5,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>{{ chatroom }} - group gchat</title>
 <link rel="stylesheet" type="text/css" href="/stylesheets/main.css">
+<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
 
 </head>
 <body>
 
 <div id="sidePanel">
   <h1 id="chatroom">{{ chatroom }}</h1>
-  <a class="toBottom" onclick="scrollToBottom;">to bottom</a><br><br>
+  <a class="toBottom" onclick="scrollToBottom();">to bottom</a> | <i onclick="toggleSound();" id="soundIcon" class="fa fa-volume-up"></i><br><br>
   <span id="connectedUsersLabel">Connected Users</span><br>
   <div id="connectedUsers">
     {% for connection in connections %}
@@ -35,83 +36,24 @@
 	<input autocomplete="off" id="chatInput" type="text" name="content"></input>
 </div>
 
-<script type="text/javascript" src="/_ah/channel/jsapi"></script>
+<audio id="dingSound" src="media/ding.wav" preload="auto"></audio>
+
+<script src="/_ah/channel/jsapi"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-<script type="text/javascript" src="/js/autolinker.js"></script>
-<script type="text/javascript" src="/js/titlealert.js"></script>
+<script src="/js/autolinker.js"></script>
+<script src="/js/titlealert.js"></script>
+<script src="/js/soundqueue.js"></script>
 
 <script>
-
-createUID = function(){
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, 
-    function(c) {var r = Math.random()*16|0,v=c=='x'?r:r&0x3|0x8;return v.toString(16);});
+window.glob = {
+  sound: true,
+  token: '{{ token }}',
+  userNickname: '{{ user.nickname() }}',
+  chatroom: '{{ chatroom }}',
 };
-
-scrollToBottom = function(){
-  window.scrollTo(0,document.body.scrollHeight);
-};
-
-turnLinksBlue = function(element){
-  element.html(Autolinker.link(element.html()));
-};
-
-makeChatroomsLinkable = function(element){
-  var patt = /(^\/|\s\/)\w+/ig;
-  element.html(element.html().replace(patt,function(match){
-    console.log(match);
-    return "<a href='http://groupgchat.appspot.com" + match + "'>" + match + "</a>";
-  }));
-};
-
-breakLongWords = function(element){
-  var patt = /([^\s<>]{20})(?![^<>]*>)/gi;
-  element.html(element.html().replace(patt,function(match){
-    console.log(match);
-    return match + "&#8203;";
-  }));
-};
-
-channel = new goog.appengine.Channel('{{ token }}');
-socket = channel.open();
-socket.onmessage = function(data){
-  obj = JSON.parse(data.data);
-  uid = createUID();
-
-  $('#chatsContainer').append("<tr id="+uid+"><td class='author'>" 
-    + obj.author + "</td><td class='content'>" + obj.content + "</td></tr>");
-
-  turnLinksBlue($('#'+uid));
-  makeChatroomsLinkable($('#'+uid+' td:nth-child(2)'));
-  breakLongWords($('#'+uid+' td:nth-child(2)'));
-  scrollToBottom();
-
-  $.titleAlert("New Message From " + obj.author, {requireBlur:true, stopOnFocus:true, duration:10000, interval:500});
-};
-
-$('#chatInput').keydown(function(event){
-  var code = event.keyCode || event.which;
-  if(code == 13) { // Enter keycode
-    event.preventDefault();
-    userInput = $('#chatInput').val();
-    $('#chatInput').val('');
-    $.post("/chatpost", {content: userInput, chatroom: '{{ chatroom }}'});
-  }
-});
-
-$(function() {
-  $('#chatInput').focus();
-  $(window).focus(function(){$('#chatInput').focus();});
-  turnLinksBlue($('#chatsContainer'));
-  breakLongWords($('#chatsContainer'));
-  scrollToBottom();
-
-  $('#connectedUsers').hide();
-  $('#connectedUsersLabel').click(function(){
-    $('#connectedUsers').slideToggle();
-  });
-});
-
 </script>
+
+<script src="/js/main.js"></script>
 
 </body>
 </html>

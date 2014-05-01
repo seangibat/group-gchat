@@ -107,3 +107,7 @@ h1{
 #connectedUsers{
   display: hidden;
 }
+
+#soundIcon{
+  cursor: pointer;
+}

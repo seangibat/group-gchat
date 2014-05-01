@@ -12,6 +12,9 @@ handlers:
 - url: /stylesheets
   static_dir: stylesheets
 
+- url: /media
+  static_dir: media
+
 - url: /js
   static_dir: js
 

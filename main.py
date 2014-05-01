@@ -51,8 +51,10 @@ class ChatPage(webapp2.RequestHandler):
 		token = channel.create_channel(channel_id)
 		ckey = chatroom_key(chatroom)
 
+		current_user = users.get_current_user()
+
 		# Store the connection
-		connection = Connection(parent=ckey, channel_id=channel_id, user=users.get_current_user())
+		connection = Connection(parent=ckey, channel_id=channel_id, user=current_user)
 		connection.put()
 
 		connections = get_connections(chatroom)
@@ -64,7 +66,8 @@ class ChatPage(webapp2.RequestHandler):
 			'chatroom': urllib.quote_plus(chatroom),
 			'token': token,
 			'chats': chats,
-			'connections': connections
+			'connections': connections,
+			'user': current_user,
 		}
 
 		template = JINJA_ENVIRONMENT.get_template('index.html')
