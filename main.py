@@ -23,16 +23,13 @@ def get_connections(chatroom):
 	connections_query = Connection.query(ancestor=chatroom_key(chatroom))
 	return connections_query.fetch(40)
 
-def send_message_to_chatroom_connections(content, chatroom):
-	ndb.get_context().set_memcache_policy(False)
-	ndb.get_context().set_cache_policy(False)
-	
+def send_message_to_chatroom_connections(message, chatroom):
 	connections = get_connections(chatroom)
-	author = users.get_current_user().nickname()
-	message = json.dumps({'content': content,'author': author})
-
 	for c in connections:
 		channel.send_message(c.channel_id, message)
+
+def test_chatroom_connections(chatroom):
+
 
 class ChatLine(ndb.Model):
 	author = ndb.UserProperty()
@@ -46,7 +43,6 @@ class Connection(ndb.Model):
 
 class ChatPage(webapp2.RequestHandler):
 	def get(self, chatroom="main"):
-
 		channel_id = uuid.uuid4().hex
 		token = channel.create_channel(channel_id)
 		ckey = chatroom_key(chatroom)
@@ -77,11 +73,19 @@ class ChatPost(webapp2.RequestHandler):
 	def post(self):
 		chatroom = self.request.get('chatroom')
 		content = self.request.get('content')
+		author = users.get_current_user()
 
-		chatline = ChatLine(parent=chatroom_key(chatroom), content=content, author=users.get_current_user())
+		chatline = ChatLine(parent=chatroom_key(chatroom), content=content, author=author)
 		chatline.put()
 
-		send_message_to_chatroom_connections(chatline.content, chatroom)
+		message = json.dumps({'type':'chatMessage','content': content,'author': author})
+		send_message_to_chatroom_connections(message, chatroom)
+
+class ChatConnectionResponse(webapp2.RequestHandler):
+	def post(self):
+		channel_id = self.request.get('from')
+		chatroom = self.request.get('chatroom')
+		connections = get_connections(chatroom)
 
 class ConnectionDisconnect(webapp2.RequestHandler):
 	def post(self):
@@ -93,6 +97,7 @@ class ConnectionDisconnect(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
 	('/', ChatPage),
 	('/chatpost', ChatPost),
+	('/chatconnectionresponse', ChatConnectionResponse),
 	('/(\w+)', ChatPage),
 	('/_ah/channel/disconnected/', ConnectionDisconnect)
 ], debug=True)
