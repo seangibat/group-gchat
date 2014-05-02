@@ -18,6 +18,14 @@ handlers:
 - url: /js
   static_dir: js
 
+- url: /connections/testpoll
+  script: main.app
+  login: admin
+
+- url: /connections/preen
+  script: main.app
+  login: admin
+
 - url: .*
   script: main.app
   login: required

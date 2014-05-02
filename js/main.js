@@ -1,13 +1,11 @@
 toggleSound = function(){
   if (glob.sound == true){
     glob.sound = false;
-    $('#soundIcon').removeClass('fa-volume-up');
-    $('#soundIcon').addClass('fa-volume-off');
+    $('#soundIcon').removeClass('fa-volume-up').addClass('fa-volume-off');
   }
   else{
     glob.sound = true;
-    $('#soundIcon').removeClass('fa-volume-off');
-    $('#soundIcon').addClass('fa-volume-up');
+    $('#soundIcon').removeClass('fa-volume-off').addClass('fa-volume-up');
   }
 }
 
@@ -18,10 +16,6 @@ createUID = function(){
 
 scrollToBottom = function(){
   window.scrollTo(0,document.body.scrollHeight);
-};
-
-turnLinksBlue = function(element){
-  element.html(Autolinker.link(element.html()));
 };
 
 $.fn.turnLinksBlue = function() {
@@ -47,24 +41,35 @@ breakLongWords = function(element){
   }));
 };
 
-channel = new goog.appengine.Channel(glob.token);
-socket = channel.open();
-
-socket.onmessage = function(data){
-  obj = JSON.parse(data.data);
+chatMessage = function(obj){
   uid = createUID();
 
   $('#chatsContainer').append("<tr id="+uid+"><td class='author'>" 
     + obj.author + "</td><td class='content'>" + obj.content + "</td></tr>");
 
   breakLongWords($('#'+uid+' td:nth-child(2)'));
+  $('#'+uid+' td:nth-child(2)').turnLinksBlue().makeChatroomsLinkable();
   scrollToBottom();
-  turnLinksBlue($('#'+uid+' td:nth-child(2)'));
-  $('#'+uid+' td:nth-child(2)').makeChatroomsLinkable();
-
   $.titleAlert("New Message From " + obj.author, {requireBlur:true, stopOnFocus:true, duration:10000, interval:500});
-
   if (glob.sound && (glob.userNickname != obj.author)) play_multi_sound('dingSound');
+};
+
+testMessage = function(){
+  console.log("we got a poll");
+  $.get("/connections/updatetimestamp", {token: glob.token, chatroom: glob.chatroom});
+};
+
+connectedUpdate = function(obj){
+  console.log(obj);
+};
+
+channel = new goog.appengine.Channel(glob.token);
+socket = channel.open();
+socket.onmessage = function(data){
+  obj = JSON.parse(data.data);
+  if (obj.type == "chatMessage") chatMessage(obj);
+  else if (obj.type == "test") testMessage();
+  else if (obj.type == "connectedUpdate") connectedUpdated(obj);
 };
 
 $('#chatInput').keydown(function(event){
@@ -80,13 +85,22 @@ $('#chatInput').keydown(function(event){
 $(function() {
   $('#chatInput').focus();
   $(window).focus(function(){$('#chatInput').focus();});
+  
+  $('.content').turnLinksBlue().makeChatroomsLinkable();
   breakLongWords($('#chatsContainer'));
   scrollToBottom();
-  $('.content').turnLinksBlue();
-  $('.content').makeChatroomsLinkable();
 
   $('#connectedUsers').hide();
+  var expanded = false;
   $('#connectedUsersLabel').click(function(){
     $('#connectedUsers').slideToggle();
+    if (expanded){
+      expanded = false;
+      $('#connectedUsersLabel').html('Connected Users');
+    }
+    else{
+      expanded = true;
+      $('#connectedUsersLabel').html('Connected Users');
+    } 
   });
 });

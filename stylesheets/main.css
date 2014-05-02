@@ -104,6 +104,10 @@ h1{
   cursor: pointer;
 }
 
+#plusminus{
+  text-decoration: none !important;
+}
+
 #connectedUsers{
   display: hidden;
 }

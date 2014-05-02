@@ -6,10 +6,14 @@ import jinja2
 import webapp2
 import uuid
 import json
+import datetime
+import logging
 
+from datetime import timedelta
 from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.api import channel
+from google.appengine.api import taskqueue
 
 JINJA_ENVIRONMENT = jinja2.Environment(
 	loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -19,20 +23,38 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 def chatroom_key(chatroom_name):
 	return ndb.Key('Chatroom', chatroom_name)
 
+def get_chats(chatroom):
+	chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(+ChatLine.date)
+	return chats_query.fetch(1000)
+
 def get_connections(chatroom):
 	connections_query = Connection.query(ancestor=chatroom_key(chatroom))
 	return connections_query.fetch(40)
 
-def send_message_to_chatroom_connections(content, chatroom):
-	ndb.get_context().set_memcache_policy(False)
-	ndb.get_context().set_cache_policy(False)
-	
-	connections = get_connections(chatroom)
-	author = users.get_current_user().nickname()
-	message = json.dumps({'content': content,'author': author})
+def make_new_connection(chatroom, user):
+	channel_id = uuid.uuid4().hex
+	token = channel.create_channel(channel_id)
+	ckey = chatroom_key(chatroom)
 
+	# Store the connection
+	connection = Connection(parent=ckey, token=token, channel_id=channel_id, user=user, chatroom=chatroom)
+	connection.put_async()
+
+	return connection
+
+def send_json_to_chatroom_connections(message, chatroom):
+	connections = get_connections(chatroom)
 	for c in connections:
-		channel.send_message(c.channel_id, message)
+		channel.send_message(c.token, message)
+
+def update_clients_connections_lists():
+	chat_connections_query = ndb.gql("SELECT DISTINCT chatroom FROM Connection")
+	chat_connections = chat_connections_query.fetch(1000)
+	for chat_connection in chat_connections:
+		connections = get_connections(chat_connection.chatroom)
+		message = json.dumps({'type':'connectedUpdate','connections': connections})
+		for c in connections:
+			channel.send_message(c.token, message)
 
 class ChatLine(ndb.Model):
 	author = ndb.UserProperty()
@@ -41,30 +63,21 @@ class ChatLine(ndb.Model):
 
 class Connection(ndb.Model):
 	channel_id = ndb.StringProperty()
+	token = ndb.StringProperty()
+	chatroom = ndb.StringProperty()
 	user = ndb.UserProperty()
 	date = ndb.DateTimeProperty(auto_now_add=True)
 
 class ChatPage(webapp2.RequestHandler):
 	def get(self, chatroom="main"):
-
-		channel_id = uuid.uuid4().hex
-		token = channel.create_channel(channel_id)
-		ckey = chatroom_key(chatroom)
-
 		current_user = users.get_current_user()
-
-		# Store the connection
-		connection = Connection(parent=ckey, channel_id=channel_id, user=current_user)
-		connection.put()
-
+		connection = make_new_connection(chatroom, current_user)
 		connections = get_connections(chatroom)
-
-		chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(+ChatLine.date)
-		chats = chats_query.fetch(1000)
+		chats = get_chats(chatroom)
 
 		template_values = {
 			'chatroom': urllib.quote_plus(chatroom),
-			'token': token,
+			'token': connection.token,
 			'chats': chats,
 			'connections': connections,
 			'user': current_user,
@@ -77,12 +90,45 @@ class ChatPost(webapp2.RequestHandler):
 	def post(self):
 		chatroom = self.request.get('chatroom')
 		content = self.request.get('content')
+		author = users.get_current_user()
 
-		chatline = ChatLine(parent=chatroom_key(chatroom), content=content, author=users.get_current_user())
-		chatline.put()
+		chatline = ChatLine(parent=chatroom_key(chatroom), content=content, author=author)
+		chatline.put_async()
 
-		send_message_to_chatroom_connections(chatline.content, chatroom)
+		message = json.dumps({'type':'chatMessage','content': content,'author': author.nickname()})
+		send_json_to_chatroom_connections(message, chatroom)
 
+class PollConnections(webapp2.RequestHandler):
+	def get(self):
+		connections_query = ndb.gql("SELECT token FROM Connection")
+		connections = connections_query.fetch(1000)
+		message = json.dumps({'type':'test'})
+
+		for c in connections:
+			channel.send_message(c.token, message)
+
+class UpdateConnectionTimestamp(webapp2.RequestHandler):
+	def get(self):
+		token = self.request.get('token')
+		chatroom = self.request.get('chatroom')
+		connection_query = Connection.query(Connection.token == token)
+		connection = connection_query.get()
+		self.response.out.write(connection)
+		connection.date = datetime.datetime.now()
+		connection.put()
+		self.response.out.write(connection)
+
+class PreenOldConnections(webapp2.RequestHandler):
+	def get(self):
+		time = datetime.datetime.now()-datetime.timedelta(minutes=2)
+		key_query = ndb.gql("SELECT __key__ FROM Connection WHERE date <= :1", time)
+		keys = key_query.fetch(1000)
+		if keys:
+			for k in keys:
+				k.delete()
+
+		#update_clients_connections_lists()
+		
 class ConnectionDisconnect(webapp2.RequestHandler):
 	def post(self):
 		channel_id = self.request.get('from')
@@ -90,9 +136,17 @@ class ConnectionDisconnect(webapp2.RequestHandler):
 		key_to_delete = key_query.get()
 		key_to_delete.delete()
 
+class ConnectionConnect(webapp2.RequestHandler):
+	def post(self):
+		return
+
 app = webapp2.WSGIApplication([
 	('/', ChatPage),
 	('/chatpost', ChatPost),
+	('/connections/testpoll', PollConnections),
+	('/connections/updatetimestamp', UpdateConnectionTimestamp),
+	('/connections/preen', PreenOldConnections),
 	('/(\w+)', ChatPage),
+	('/_ah/channel/connected/', ConnectionConnect),
 	('/_ah/channel/disconnected/', ConnectionDisconnect)
 ], debug=True)
