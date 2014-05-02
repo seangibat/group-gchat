@@ -24,12 +24,19 @@ turnLinksBlue = function(element){
   element.html(Autolinker.link(element.html()));
 };
 
-makeChatroomsLinkable = function(element){
+$.fn.turnLinksBlue = function() {
+  return this.each(function() {
+    $(this).html(Autolinker.link($(this).html()));
+  });
+};
+
+$.fn.makeChatroomsLinkable = function() {
   var patt = /(^\/|\s\/)\w+/ig;
-  element.html(element.html().replace(patt,function(match){
-    console.log(match);
-    return "<a href='" + match + "'>" + match + "</a>";
-  }));
+  return this.each(function() {
+    $(this).html($(this).html().replace(patt,function(match){
+      return "<a href='" + match + "' target='_blank'>" + match + "</a>";
+    }));
+  });
 };
 
 breakLongWords = function(element){
@@ -42,6 +49,7 @@ breakLongWords = function(element){
 
 channel = new goog.appengine.Channel(glob.token);
 socket = channel.open();
+
 socket.onmessage = function(data){
   obj = JSON.parse(data.data);
   uid = createUID();
@@ -49,10 +57,10 @@ socket.onmessage = function(data){
   $('#chatsContainer').append("<tr id="+uid+"><td class='author'>" 
     + obj.author + "</td><td class='content'>" + obj.content + "</td></tr>");
 
-  turnLinksBlue($('#'+uid));
-  makeChatroomsLinkable($('#'+uid+' td:nth-child(2)'));
   breakLongWords($('#'+uid+' td:nth-child(2)'));
   scrollToBottom();
+  turnLinksBlue($('#'+uid+' td:nth-child(2)'));
+  $('#'+uid+' td:nth-child(2)').makeChatroomsLinkable();
 
   $.titleAlert("New Message From " + obj.author, {requireBlur:true, stopOnFocus:true, duration:10000, interval:500});
 
@@ -72,9 +80,10 @@ $('#chatInput').keydown(function(event){
 $(function() {
   $('#chatInput').focus();
   $(window).focus(function(){$('#chatInput').focus();});
-  turnLinksBlue($('#chatsContainer'));
   breakLongWords($('#chatsContainer'));
   scrollToBottom();
+  $('.content').turnLinksBlue();
+  $('.content').makeChatroomsLinkable();
 
   $('#connectedUsers').hide();
   $('#connectedUsersLabel').click(function(){
