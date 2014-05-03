@@ -61,6 +61,12 @@ testMessage = function(){
 
 connectedUpdate = function(obj){
   console.log(obj);
+  console.log(obj.connections[0]);
+  var arrayLength = obj.connections.length;
+  $('#connectedUsers').html('');
+  for(x=0; x < arrayLength; x++){
+    $('#connectedUsers').append(obj.connections[x] + '<br>');
+  }
 };
 
 channel = new goog.appengine.Channel(glob.token);
@@ -69,7 +75,7 @@ socket.onmessage = function(data){
   obj = JSON.parse(data.data);
   if (obj.type == "chatMessage") chatMessage(obj);
   else if (obj.type == "test") testMessage();
-  else if (obj.type == "connectedUpdate") connectedUpdated(obj);
+  else if (obj.type == "connectedUpdate") connectedUpdate(obj);
 };
 
 $('#chatInput').keydown(function(event){

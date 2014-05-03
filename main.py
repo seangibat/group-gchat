@@ -25,7 +25,7 @@ def chatroom_key(chatroom_name):
 
 def get_chats(chatroom):
 	chats_query = ChatLine.query(ancestor=chatroom_key(chatroom)).order(+ChatLine.date)
-	return chats_query.fetch(1000)
+	return chats_query.fetch()
 
 def get_connections(chatroom):
 	connections_query = Connection.query(ancestor=chatroom_key(chatroom))
@@ -38,7 +38,7 @@ def make_new_connection(chatroom, user):
 
 	# Store the connection
 	connection = Connection(parent=ckey, token=token, channel_id=channel_id, user=user, chatroom=chatroom)
-	connection.put_async()
+	connection.put()
 
 	return connection
 
@@ -47,14 +47,27 @@ def send_json_to_chatroom_connections(message, chatroom):
 	for c in connections:
 		channel.send_message(c.token, message)
 
-def update_clients_connections_lists():
+def update_clients_connections_all():
 	chat_connections_query = ndb.gql("SELECT DISTINCT chatroom FROM Connection")
-	chat_connections = chat_connections_query.fetch(1000)
+	chat_connections = chat_connections_query.fetch()
 	for chat_connection in chat_connections:
-		connections = get_connections(chat_connection.chatroom)
-		message = json.dumps({'type':'connectedUpdate','connections': connections})
+		chatroom = chat_connection.chatroom
+		connections = get_connections(chatroom)
+		u = []
+		for c in connections:
+			u.append(c.user.nickname())
+		message = json.dumps({'type':'connectedUpdate','connections': u})
 		for c in connections:
 			channel.send_message(c.token, message)
+
+def update_clients_connections_chatroom(chatroom):
+	connections = get_connections(chatroom)
+	u = []
+	for c in connections:
+		u.append(c.user.nickname())
+	message = json.dumps({'type':'connectedUpdate','connections': u})
+	for c in connections:
+		channel.send_message(c.token, message)
 
 class ChatLine(ndb.Model):
 	author = ndb.UserProperty()
@@ -86,6 +99,8 @@ class ChatPage(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('index.html')
 		self.response.write(template.render(template_values))
 
+		update_clients_connections_chatroom(chatroom)
+
 class ChatPost(webapp2.RequestHandler):
 	def post(self):
 		chatroom = self.request.get('chatroom')
@@ -101,7 +116,7 @@ class ChatPost(webapp2.RequestHandler):
 class PollConnections(webapp2.RequestHandler):
 	def get(self):
 		connections_query = ndb.gql("SELECT token FROM Connection")
-		connections = connections_query.fetch(1000)
+		connections = connections_query.fetch()
 		message = json.dumps({'type':'test'})
 
 		for c in connections:
@@ -122,19 +137,22 @@ class PreenOldConnections(webapp2.RequestHandler):
 	def get(self):
 		time = datetime.datetime.now()-datetime.timedelta(minutes=2)
 		key_query = ndb.gql("SELECT __key__ FROM Connection WHERE date <= :1", time)
-		keys = key_query.fetch(1000)
+		keys = key_query.fetch()
+		self.response.out.write(keys)
 		if keys:
 			for k in keys:
 				k.delete()
-
-		#update_clients_connections_lists()
+			update_clients_connections_all()
 		
 class ConnectionDisconnect(webapp2.RequestHandler):
 	def post(self):
 		channel_id = self.request.get('from')
 		key_query = ndb.gql("SELECT __key__ FROM Connection WHERE channel_id = :1", channel_id)
 		key_to_delete = key_query.get()
+		connection = key_to_delete.get()
+		chatroom = connection.chatroom
 		key_to_delete.delete()
+		update_clients_connections_chatroom(chatroom)
 
 class ConnectionConnect(webapp2.RequestHandler):
 	def post(self):

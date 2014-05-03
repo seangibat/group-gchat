@@ -1,8 +1,8 @@
 cron:
 - description: connection test
   url: /connections/testpoll
-  schedule: every 1 mins
+  schedule: every 3 mins
 
 - description: preen old connections
   url: /connections/preen
-  schedule: every 2 mins
+  schedule: every 6 mins
