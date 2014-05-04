@@ -11,9 +11,15 @@
 <body>
 
 <div id="sidePanel">
-  <h1 id="chatroom">{{ chatroom }}</h1>
-  <a class="toBottom" onclick="scrollToBottom();">to bottom</a> | <i onclick="toggleSound();" id="soundIcon" class="fa fa-volume-up"></i><br><br>
-  <span id="connectedUsersLabel">Connected Users</span><br>
+  <h1 id="chatroom">{{ chatroom }}</h1><br>
+
+  <a class="toBottom" onclick="scrollToBottom();">to bottom</a> | 
+  <i onclick="toggleSound();" id="soundIcon" class="fa fa-volume-up"></i><br><br>
+
+  <span id="connectedUsersButton">
+    <i id="connectedUsersIcon" class="fa fa-minus-square-o"></i>
+    <span id="connectedUsersLabel">Connected Users</span>
+  </span>
   <div id="connectedUsers">
     {% for connection in connections %}
       {{ connection.user.nickname() }}<br>
@@ -50,6 +56,7 @@ window.glob = {
   token: '{{ token }}',
   userNickname: '{{ user.nickname() }}',
   chatroom: '{{ chatroom }}',
+  expanded: true,
 };
 </script>
 

@@ -96,17 +96,15 @@ $(function() {
   breakLongWords($('#chatsContainer'));
   scrollToBottom();
 
-  $('#connectedUsers').hide();
-  var expanded = false;
-  $('#connectedUsersLabel').click(function(){
+  $('#connectedUsersButton').click(function(){
     $('#connectedUsers').slideToggle();
-    if (expanded){
-      expanded = false;
-      $('#connectedUsersLabel').html('Connected Users');
+    if (glob.expanded){
+      glob.expanded = false;
+      $('#connectedUsersIcon').removeClass('fa-minus-square-o').addClass('fa-plus-square-o');
     }
     else{
-      expanded = true;
-      $('#connectedUsersLabel').html('Connected Users');
+      glob.expanded = true;
+      $('#connectedUsersIcon').removeClass('fa-plus-square-o').addClass('fa-minus-square-o');
     } 
   });
 });
