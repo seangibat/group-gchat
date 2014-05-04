@@ -47,19 +47,6 @@ def send_json_to_chatroom_connections(message, chatroom):
 	for c in connections:
 		channel.send_message(c.token, message)
 
-def update_clients_connections_all():
-	chat_connections_query = ndb.gql("SELECT DISTINCT chatroom FROM Connection")
-	chat_connections = chat_connections_query.fetch()
-	for chat_connection in chat_connections:
-		chatroom = chat_connection.chatroom
-		connections = get_connections(chatroom)
-		u = []
-		for c in connections:
-			u.append(c.user.nickname())
-		message = json.dumps({'type':'connectedUpdate','connections': u})
-		for c in connections:
-			channel.send_message(c.token, message)
-
 def update_clients_connections_chatroom(chatroom):
 	connections = get_connections(chatroom)
 	u = []
@@ -68,6 +55,13 @@ def update_clients_connections_chatroom(chatroom):
 	message = json.dumps({'type':'connectedUpdate','connections': u})
 	for c in connections:
 		channel.send_message(c.token, message)
+
+def update_clients_connections_all():
+	chat_connections_query = ndb.gql("SELECT DISTINCT chatroom FROM Connection")
+	chat_connections = chat_connections_query.fetch()
+	for chat_connection in chat_connections:
+		chatroom = chat_connection.chatroom
+		update_clients_connections_chatroom(chatroom)
 
 class ChatLine(ndb.Model):
 	author = ndb.UserProperty()
@@ -82,7 +76,7 @@ class Connection(ndb.Model):
 	date = ndb.DateTimeProperty(auto_now_add=True)
 
 class ChatPage(webapp2.RequestHandler):
-	def get(self, chatroom="main"):
+	def get(self, chatroom="groupGchat"):
 		current_user = users.get_current_user()
 		connection = make_new_connection(chatroom, current_user)
 		connections = get_connections(chatroom)
@@ -135,7 +129,7 @@ class UpdateConnectionTimestamp(webapp2.RequestHandler):
 
 class PreenOldConnections(webapp2.RequestHandler):
 	def get(self):
-		time = datetime.datetime.now()-datetime.timedelta(minutes=2)
+		time = datetime.datetime.now()-datetime.timedelta(minutes=6)
 		key_query = ndb.gql("SELECT __key__ FROM Connection WHERE date <= :1", time)
 		keys = key_query.fetch()
 		self.response.out.write(keys)
