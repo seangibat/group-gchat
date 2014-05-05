@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""
+# Hey! Thanks for reading. I'd love any feedback on how I could
+# organize or program this better. I'm still pretty new to Python 
+# and programming in general. I figure I need to move all of the 
+# connection stuff into it's own class and module. I'll do that when 
+# I get a moment this week.
+"""
+
 import os
 import urllib
 import jinja2
@@ -20,6 +28,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 	extensions=['jinja2.ext.autoescape'],
 	autoescape=True)
 
+# Keys are based on the chatroom name and used by both connections and chatlines.
 def chatroom_key(chatroom_name):
 	return ndb.Key('Chatroom', chatroom_name)
 
@@ -107,6 +116,7 @@ class ChatPost(webapp2.RequestHandler):
 		message = json.dumps({'type':'chatMessage','content': content,'author': author.nickname()})
 		send_json_to_chatroom_connections(message, chatroom)
 
+# This runs on a cron job every 3 minutes.
 class PollConnections(webapp2.RequestHandler):
 	def get(self):
 		connections_query = ndb.gql("SELECT token FROM Connection")
@@ -116,6 +126,8 @@ class PollConnections(webapp2.RequestHandler):
 		for c in connections:
 			channel.send_message(c.token, message)
 
+# When clients get the poll, they reply back to this handler, 
+# and their timestamp is updated.
 class UpdateConnectionTimestamp(webapp2.RequestHandler):
 	def get(self):
 		token = self.request.get('token')
@@ -127,6 +139,9 @@ class UpdateConnectionTimestamp(webapp2.RequestHandler):
 		connection.put()
 		self.response.out.write(connection)
 
+# This also runs on a cron job and removes any connections in the DB
+# whose timestamp is older than 6 minutes - that is, those that didn't 
+# reply to either of the last two polls
 class PreenOldConnections(webapp2.RequestHandler):
 	def get(self):
 		time = datetime.datetime.now()-datetime.timedelta(minutes=6)
@@ -138,14 +153,16 @@ class PreenOldConnections(webapp2.RequestHandler):
 				k.delete()
 			update_clients_connections_all()
 		
+# Called by the app engine Channel API when a client disconnects
 class ConnectionDisconnect(webapp2.RequestHandler):
 	def post(self):
 		channel_id = self.request.get('from')
 		key_query = ndb.gql("SELECT __key__ FROM Connection WHERE channel_id = :1", channel_id)
 		key_to_delete = key_query.get()
-		connection = key_to_delete.get()
-		chatroom = connection.chatroom
-		key_to_delete.delete()
+		if key_to_delete
+			connection = key_to_delete.get()
+			chatroom = connection.chatroom
+			key_to_delete.delete()
 		update_clients_connections_chatroom(chatroom)
 
 class ConnectionConnect(webapp2.RequestHandler):
